@@ -2,17 +2,23 @@
 
 namespace App\Entity;
 
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use App\Repository\UserRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 
-#[ORM\Entity(repositoryClass: UserRepository::class)]
+/**
+ * @ORM\Entity(repositoryClass="App\Repository\UserRepository")
+ */
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
-    #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column]
+    /**
+     * @ORM\Id
+     * @ORM\GeneratedValue
+     * @ORM\Column
+     */
     private ?int $id = null;
 
     #[ORM\Column(length: 180, unique: true)]
@@ -21,11 +27,24 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column]
     private array $roles = [];
 
+    #[ORM\OneToMany(targetEntity: Participant, mappedBy: user)]
+    private $participants;
+
+    /**
+     * @ORM\OneToMany(targetEntity="Message", mappedBy="user")
+     */
+    private $messages;
+
     /**
      * @var string The hashed password
      */
     #[ORM\Column]
     private ?string $password = null;
+
+    public function __construct()
+    {
+        $this->messages = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -109,5 +128,35 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     {
         // If you store any temporary, sensitive data on the user, clear it here
         // $this->plainPassword = null;
+    }
+
+    /**
+     * @return Collection<int, Mesage>
+     */
+    public function getMessages(): Collection
+    {
+        return $this->messages;
+    }
+
+    public function addMessage(Mesage $message): self
+    {
+        if (!$this->messages->contains($message)) {
+            $this->messages->add($message);
+            $message->setUser($this);
+        }
+
+        return $this;
+    }
+
+    public function removeMessage(Mesage $message): self
+    {
+        if ($this->messages->removeElement($message)) {
+            // set the owning side to null (unless already changed)
+            if ($message->getUser() === $this) {
+                $message->setUser(null);
+            }
+        }
+
+        return $this;
     }
 }
